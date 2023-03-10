@@ -1,0 +1,42 @@
+name: "Build innernet"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-deb:
+    name: 'Build Debian packages'
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        repository: tonarino/innernet
+        ref: v1.5.5
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
+        override: true
+    - name: Install Dependencies
+      env:
+        ACCEPT_EULA: Y
+      run: sudo apt-get -y update && sudo apt-get install -f && sudo apt-get -y install libsqlite3-dev libclang-11-dev
+    - uses: Swatinem/rust-cache@v1
+    - name: Install cargo-deb (if missing)
+      run: |
+        which cargo-deb || cargo install cargo-deb
+    - name: Build Debian Server Package
+      uses: actions-rs/cargo@v1
+      with:
+        command: deb
+        args: -p server
+    - name: Build Debian Client Package
+      uses: actions-rs/cargo@v1
+      with:
+        command: deb
+        args: -p client
+    - name: Save DEBs
+      uses: actions/upload-artifact@v2
+      with:
+        name: packaged-deb
+        path: target/debian/*.deb
