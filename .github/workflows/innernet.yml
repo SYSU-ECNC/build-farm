@@ -8,35 +8,26 @@ jobs:
     name: 'Build Debian packages'
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         repository: tonarino/innernet
         ref: v1.5.5
-    - uses: actions-rs/toolchain@v1
-      with:
-        profile: minimal
-        toolchain: stable
-        override: true
+    - name: Install Rust (Stable)
+      run:
+        curl https://sh.rustup.rs -sSf | sh -s -- -y
     - name: Install Dependencies
       env:
         ACCEPT_EULA: Y
       run: sudo apt-get -y update && sudo apt-get install -f && sudo apt-get -y install libsqlite3-dev libclang-11-dev
-    - uses: Swatinem/rust-cache@v1
+    - uses: Swatinem/rust-cache@v2
     - name: Install cargo-deb (if missing)
       run: |
         which cargo-deb || cargo install cargo-deb
     - name: Build Debian Server Package
-      uses: actions-rs/cargo@v1
-      with:
-        command: deb
-        args: -p server
+      run: cargo deb -p server
     - name: Build Debian Client Package
-      uses: actions-rs/cargo@v1
+      run: cargo deb -p client
+    - uses: ncipollo/release-action@v1
       with:
-        command: deb
-        args: -p client
-    - name: Save DEBs
-      uses: actions/upload-artifact@v2
-      with:
-        name: packaged-deb
-        path: target/debian/*.deb
+        tag: innernet-v1.5.5
+        artifacts: "target/debian/*.deb"
